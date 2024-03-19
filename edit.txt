@@ -1,0 +1,257 @@
+import tkinter as tk
+from tkinter import messagebox
+from PIL import Image, ImageTk
+from tkinter import filedialog
+
+from tkinter import ttk
+import sqlite3
+import re
+
+
+class CardEditApp:
+    def __init__(self, parent):
+        self.parent = parent
+        self.parent.title("Card Edit App")
+
+        # Connect to SQLite database
+        self.connection = sqlite3.connect('sqlite.db')
+        self.cursor = self.connection.cursor()
+
+        # Get screen width and height
+        # screen_width = self.parent.winfo_screenwidth()
+        # screen_height = self.parent.winfo_screenheight()
+        #
+        # # Set initial size of the main frame to fill the entire screen
+        # self.parent.geometry(f"{screen_width}x{screen_height}")
+
+        # Configure rows and columns to expand
+        self.parent.grid_rowconfigure(0, weight=1)
+        self.parent.grid_columnconfigure(0, weight=1)
+
+        # Create main frame
+        self.main_frame = tk.Frame(self.parent)
+        self.main_frame.grid(row=0, column=0, sticky="nsew")
+
+        # Dropdown list of names
+        self.name_label = tk.Label(self.main_frame, text="Select Name:")
+        self.name_label.grid(row=0, column=0, padx=10, pady=10)
+
+        self.names = self.get_names_from_database()  # Get names from database
+        self.selected_name = tk.StringVar()
+        self.name_dropdown = ttk.Combobox(self.main_frame, textvariable=self.selected_name, values=self.names)
+        self.name_dropdown.grid(row=0, column=1, padx=10, pady=10)
+
+        # Display button
+        self.Edit_button = tk.Button(self.main_frame, text="Edit", command=self.display_card, bg="#4caf50", fg="#ffffff", font=("Helvetica", 12))
+        self.Edit_button.grid(row=0, column=2, padx=10, pady=10)
+
+    def get_names_from_database(self):
+        self.cursor.execute("SELECT nm FROM id")
+        return [row[0] for row in self.cursor.fetchall()]
+
+    def display_card(self):
+        selected_name = self.selected_name.get()
+        if selected_name:
+            self.cursor.execute("SELECT * FROM id WHERE nm=?", (selected_name,))
+            data = self.cursor.fetchone()
+            if data:
+                self.display_card_window(data)
+            else:
+                messagebox.showerror("Error", "No data found for selected name.")
+        else:
+            messagebox.showerror("Error", "Please select a name.")
+
+
+    def display_card_window(self, data):
+        self.row = data[0]
+        self.std = data[1]
+        self.div = data[2]
+        self.dob = data[3]
+        self.roll = data[4]
+        self.nm = data[5]
+        self.yr = data[6]
+        self.std_img = data[7]
+        self.std_sign = data[8]
+        self.p_sign = data[9]
+
+        self.root = tk.Toplevel(self.parent)
+        self.root.title("Information Display")
+
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+
+        # Set size of the frame to fill the entire screen
+        self.root.geometry(f"{screen_width}x{screen_height}")
+
+         # Styling
+        self.root.configure(bg="#ffffff")
+
+
+        # Input Fields
+        self.input_frame = tk.Frame(self.root, bg="#ffffff", padx=20, pady=20)  # Create a frame for input fields
+        self.input_frame.pack()
+
+        # Define CSS-like attributes for labels
+        label_style = {
+            "bg": "#ffffff",
+            "font": ("Helvetica", 12),
+            "pady": 10
+        }
+
+        # Name Field and Label with Spacing
+        self.name_label = tk.Label(self.input_frame, text="Name:", **label_style)
+        self.name_label.grid(row=0, column=0, sticky="w")  # Place the label with spacing
+        self.name_entry = tk.Entry(self.input_frame, width=30, font=("Helvetica", 12), bg="#f0f0f0")
+        self.name_entry.grid(row=0, column=1, padx=10)  # Place the entry field
+        self.name_entry.insert(0,self.nm)
+
+        # Standard Field and Label
+        self.standard_label = tk.Label(self.input_frame, text="Standard:", **label_style)
+        self.standard_label.grid(row=1, column=0, sticky="w")
+        self.standard_entry = tk.Entry(self.input_frame, width=30, font=("Helvetica", 12), bg="#f0f0f0")
+        self.standard_entry.grid(row=1, column=1, padx=10)
+        self.standard_entry.insert(0,self.std)
+
+        # Division Field and Label
+        self.division_label = tk.Label(self.input_frame, text="Division:", **label_style)
+        self.division_label.grid(row=2, column=0, sticky="w")
+        self.division_entry = tk.Entry(self.input_frame, width=30, font=("Helvetica", 12), bg="#f0f0f0")
+        self.division_entry.grid(row=2, column=1, padx=10)
+        self.division_entry.insert(0,self.div)
+
+        # Academic Year Field and Label
+        self.academic_year_label = tk.Label(self.input_frame, text="Academic Year:", **label_style)
+        self.academic_year_label.grid(row=3, column=0, sticky="w")
+        self.academic_year_entry = tk.Entry(self.input_frame, width=30, font=("Helvetica", 12), bg="#f0f0f0")
+        self.academic_year_entry.grid(row=3, column=1, padx=10)
+        self.academic_year_entry.insert(0,self.yr)
+
+        # Date of Birth Field and Label
+        self.dob_label = tk.Label(self.input_frame, text="Date of Birth:", **label_style)
+        self.dob_label.grid(row=4, column=0, sticky="w")
+        self.dob_entry = tk.Entry(self.input_frame, width=30, font=("Helvetica", 12), bg="#f0f0f0")
+        self.dob_entry.grid(row=4, column=1, padx=10)
+        self.dob_entry.insert(0,self.dob)
+
+        # Roll Number Field and Label
+        self.roll_no_label = tk.Label(self.input_frame, text="Roll Number:", **label_style)
+        self.roll_no_label.grid(row=5, column=0, sticky="w")
+        self.roll_no_entry = tk.Entry(self.input_frame, width=30, font=("Helvetica", 12), bg="#f0f0f0")
+        self.roll_no_entry.grid(row=5, column=1, padx=10)
+        self.roll_no_entry.insert(0,self.roll)
+
+        # Image Labels
+        self.image_labels = [tk.Label(self.root, bg="#ffffff") for _ in range(3)]
+        for label in self.image_labels:
+            label.pack(pady=20)
+
+        # Button Styling
+        button_style = {
+            "bg": "#4caf50",
+            "fg": "#ffffff",
+            "font": ("Helvetica", 12),
+            "padx": 10,
+            "pady": 5,
+            "borderwidth": 0
+        }
+
+        # Student Image Button
+
+        student_image_button = tk.Button(self.root, text="Student Image", command=lambda: self.add_image(0), bg="#FF5733", fg="#ffffff", font=("Helvetica", 12), padx=10, pady=5, borderwidth=0)
+        student_image_button.pack(pady=(10, 5))
+
+        # Student Signature Button
+        student_signature_button = tk.Button(self.root, text="Student Signature", command=lambda: self.add_image(1), **button_style)
+        student_signature_button.pack(pady=5)
+
+        # Principal Signature Button
+        principal_signature_button = tk.Button(self.root, text="Principal Signature", command=lambda: self.add_image(2), bg="#4887E1", fg="#ffffff", font=("Helvetica", 12), padx=10, pady=5, borderwidth=0)
+        principal_signature_button.pack(pady=5)
+
+        # Display Button
+        save_button = tk.Button(self.root, text="save", command=self.validate, bg="#ff9800", fg="#ffffff", font=("Helvetica", 12), padx=10, pady=5, borderwidth=0)
+        save_button.pack(pady=10)
+
+        self.selected_image_paths = [None, None, None]
+    def add_image(self, index):
+        file_path = filedialog.askopenfilename(title=f"Select Image {index+1}", filetypes=[("Image files", "*.png;*.jpg;*.jpeg;*.gif;*.bmp")])
+
+        if file_path:
+
+            self.selected_image_paths[index] = file_path
+            print(f"Selected Image {index+1}: {self.selected_image_paths[index]}")
+
+        self.root.focus_force()
+
+
+
+    def validate(self):
+        try:
+            self.row
+            self.name = self.name_entry.get()
+            self.div = self.division_entry.get()
+            self.std = self.standard_entry.get()
+            self.yr = self.academic_year_entry.get()
+            self.dob = self.dob_entry.get()
+            self.roll = int(self.roll_no_entry.get())
+        except Exception as e:
+            print(e)
+
+
+
+        if self.yr == '2023-24' and self.validate_name() == True and (self.div =='A' or self.div =='B' or self.div =='C' or self.div =='D') and self.roll>=1 and self.roll<=60 and self.dob_validate()==True and self.std_validate()==True:
+            self.store()
+        else:
+            messagebox.showerror('error','INVALID INPUT')
+
+    def validate_name(self):
+        if all(char.isalpha() or char.isspace() for char in self.name):
+            return True
+        else:
+            return False
+
+    def dob_validate(self):
+        pattern = re.compile(r'^\d{4}-\d{2}-\d{2}$')
+        if not re.match(pattern, self.dob):
+            return False
+        else:
+            return True
+
+    def std_validate(self):
+        if self.std=='FY.BSC IT' or self.std=='FY.BSC CS' or self.std=='SY.BSC IT' or self.std=='TY.BSC IT' or self.std=='SY.BSC CS' or self.std=='TY.BSC CS':
+            return True
+        else:
+            return False
+
+    def store(self):
+        con = sqlite3.connect('sqlite.db')
+        cursor = con.cursor()
+
+        student_img_pth = self.selected_image_paths[0]
+        student_sign_pth1 = self.selected_image_paths[1]
+        princp_sign_pth2 = self.selected_image_paths[2]
+
+        if student_img_pth is None:
+            student_img_pth=self.std_img
+
+        if student_sign_pth1 is None:
+            student_sign_pth1=self.std_sign
+
+        if princp_sign_pth2 is None:
+            princp_sign_pth2=self.p_sign
+
+        cursor.execute("""UPDATE id SET standard = ?, division = ?, dob = ?, rollno = ?, nm = ?, yr = ?, std_img = ?, std_sign = ?, p_sign = ? WHERE id = ?;
+        """, (self.std, self.div, self.dob, self.roll, self.name, self.yr, student_img_pth, student_sign_pth1, princp_sign_pth2, self.row))
+
+
+        con.commit()
+        con.close()
+        self.root.destroy()
+        messagebox.showinfo('SUCCESS', 'Saved')
+
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = CardEditApp(root)
+    root.mainloop()

@@ -1,0 +1,256 @@
+import tkinter as tk
+from tkinter import filedialog
+from PIL import Image, ImageTk
+from tkinter import messagebox
+import sqlite3
+import re
+
+# con=sqlite3.connect("sqlite.db")
+
+class ImageDisplayApp:
+    def __init__(self, root):
+        self.info_window = None
+        self.root = root
+        self.root.title("Image Display App")
+        self.root.attributes('-fullscreen', True)  # Make the window fullscreen
+
+        # Styling
+        self.root.configure(bg="#ffffff")  # Set background color
+
+        # Input Fields
+        self.input_frame = tk.Frame(self.root, bg="#ffffff", padx=20, pady=20)  # Create a frame for input fields
+        self.input_frame.pack()
+
+        # Define CSS-like attributes for labels
+        label_style = {
+            "bg": "#ffffff",
+            "font": ("Helvetica", 12),
+            "pady": 10
+        }
+
+        # Name Field and Label with Spacing
+        self.name_label = tk.Label(self.input_frame, text="Name:", **label_style)
+        self.name_label.grid(row=0, column=0, sticky="w")  # Place the label with spacing
+        self.name_entry = tk.Entry(self.input_frame, width=30, font=("Helvetica", 12), bg="#f0f0f0")
+        self.name_entry.grid(row=0, column=1, padx=10)  # Place the entry field
+
+        # Standard Field and Label
+        self.standard_label = tk.Label(self.input_frame, text="Standard:", **label_style)
+        self.standard_label.grid(row=1, column=0, sticky="w")
+        self.standard_entry = tk.Entry(self.input_frame, width=30, font=("Helvetica", 12), bg="#f0f0f0")
+        self.standard_entry.grid(row=1, column=1, padx=10)
+
+        # Division Field and Label
+        self.division_label = tk.Label(self.input_frame, text="Division:", **label_style)
+        self.division_label.grid(row=2, column=0, sticky="w")
+        self.division_entry = tk.Entry(self.input_frame, width=30, font=("Helvetica", 12), bg="#f0f0f0")
+        self.division_entry.grid(row=2, column=1, padx=10)
+
+        # Academic Year Field and Label
+        self.academic_year_label = tk.Label(self.input_frame, text="Academic Year:", **label_style)
+        self.academic_year_label.grid(row=3, column=0, sticky="w")
+        self.academic_year_entry = tk.Entry(self.input_frame, width=30, font=("Helvetica", 12), bg="#f0f0f0")
+        self.academic_year_entry.grid(row=3, column=1, padx=10)
+
+        # Date of Birth Field and Label
+        self.dob_label = tk.Label(self.input_frame, text="Date of Birth:", **label_style)
+        self.dob_label.grid(row=4, column=0, sticky="w")
+        self.dob_entry = tk.Entry(self.input_frame, width=30, font=("Helvetica", 12), bg="#f0f0f0")
+        self.dob_entry.grid(row=4, column=1, padx=10)
+
+        # Roll Number Field and Label
+        self.roll_no_label = tk.Label(self.input_frame, text="Roll Number:", **label_style)
+        self.roll_no_label.grid(row=5, column=0, sticky="w")
+        self.roll_no_entry = tk.Entry(self.input_frame, width=30, font=("Helvetica", 12), bg="#f0f0f0")
+        self.roll_no_entry.grid(row=5, column=1, padx=10)
+
+        # Image Labels
+        self.image_labels = [tk.Label(self.root, bg="#ffffff") for _ in range(3)]
+        for label in self.image_labels:
+            label.pack(pady=20)
+
+        # Button Styling
+        button_style = {
+            "bg": "#4caf50",
+            "fg": "#ffffff",
+            "font": ("Helvetica", 12),
+            "padx": 10,
+            "pady": 5,
+            "borderwidth": 0
+        }
+
+        # Student Image Button
+        student_image_button = tk.Button(self.root, text="Student Image", command=lambda: self.add_image(0), bg="#FF5733", fg="#ffffff", font=("Helvetica", 12), padx=10, pady=5, borderwidth=0)
+        student_image_button.pack(pady=(10, 5))
+
+        # Student Signature Button
+        student_signature_button = tk.Button(self.root, text="Student Signature", command=lambda: self.add_image(1), **button_style)
+        student_signature_button.pack(pady=5)
+
+        # Principal Signature Button
+        principal_signature_button = tk.Button(self.root, text="Principal Signature", command=lambda: self.add_image(2), bg="#4887E1", fg="#ffffff", font=("Helvetica", 12), padx=10, pady=5, borderwidth=0)
+        principal_signature_button.pack(pady=5)
+
+        # Display Button
+        display_button = tk.Button(self.root, text="Display", command=self.validate, bg="#ff9800", fg="#ffffff", font=("Helvetica", 12), padx=10, pady=5, borderwidth=0)
+        display_button.pack(pady=10)
+
+        # Back Button
+        back_button = tk.Button(self.root, text="Back", command=self.go_back, bg="#607d8b", fg="#ffffff", font=("Helvetica", 12), padx=10, pady=5, borderwidth=0)
+        back_button.place(relx=0.02, rely=0.95, anchor="sw")  # Place the button in the left bottom corner
+
+        # Selected Image Paths
+        self.selected_image_paths = [None, None, None]
+
+    def validate(self):
+        try:
+            self.name = self.name_entry.get()
+            self.div = self.division_entry.get()
+            self.std = self.standard_entry.get()
+            self.yr = self.academic_year_entry.get()
+            self.dob = self.dob_entry.get()
+            self.roll = int(self.roll_no_entry.get())
+        except Exception as e:
+            print(e)
+
+
+
+        if self.yr == '2023-24' and self.validate_name() == True and (self.div =='A' or self.div =='B' or self.div =='C' or self.div =='D') and self.roll>=1 and self.roll<=60 and self.dob_validate()==True and self.std_validate()==True:
+            self.display_images()
+        else:
+            messagebox.showerror('error','INVALID INPUT')
+
+    def validate_name(self):
+        if all(char.isalpha() or char.isspace() for char in self.name):
+            return True
+        else:
+            return False
+
+    def dob_validate(self):
+        pattern = re.compile(r'^\d{4}-\d{2}-\d{2}$')
+        if not re.match(pattern, self.dob):
+            return False
+        else:
+            return True
+
+    def std_validate(self):
+        if self.std=='FY.BSC IT' or self.std=='FY.BSC CS' or self.std=='SY.BSC IT' or self.std=='TY.BSC IT' or self.std=='SY.BSC CS' or self.std=='TY.BSC CS':
+            return True
+        else:
+            return False
+    def go_back(self):
+        self.root.destroy()  # Close the current window
+        self.previous_page.deiconify()  # Restore the previous window
+
+    def add_image(self, index):
+        file_path = filedialog.askopenfilename(title=f"Select Image {index+1}", filetypes=[("Image files", "*.png;*.jpg;*.jpeg;*.gif;*.bmp")])
+
+        if file_path:
+
+            self.selected_image_paths[index] = file_path
+            print(f"Selected Image {index+1}: {self.selected_image_paths[index]}")
+
+        self.root.focus_force()  # Raise the main root window to the top
+
+    def display_images(self):
+
+        # Create a new Toplevel window
+        self.info_window = tk.Toplevel(self.root)
+        self.info_window.title("Information Display")
+
+        screen_width = self.info_window.winfo_screenwidth()
+        screen_height = self.info_window.winfo_screenheight()
+
+        # Set size of the frame to fill the entire screen
+        self.info_window.geometry(f"{screen_width}x{screen_height}")
+
+        logo_path = "logo_college.jpg"
+        logo_image = Image.open(logo_path).resize((70, 70))  # Adjust size as needed
+        logo_photo = ImageTk.PhotoImage(logo_image)
+
+        # Display the logo
+        logo_label = tk.Label(self.info_window, image=logo_photo, bd=1, relief=tk.SOLID)
+        logo_label.image = logo_photo  # Retain a reference to avoid garbage collection
+        logo_label.pack(pady=10)
+
+        # Information Frame
+        info_frame = tk.Frame(self.info_window)
+        info_frame.pack(pady=10)
+
+        # Display Images
+        images = [Image.open(path).resize((125, 125)) if path else None for path in self.selected_image_paths]
+
+        for i, image in enumerate(images):
+            if i == 0 and image:
+                photo = ImageTk.PhotoImage(image)
+                label = tk.Label(info_frame, image=photo, bd=1, relief=tk.SOLID)
+                label.photo = photo
+                label.pack(pady=5)
+            elif not image:
+                print(f"Please select Image {i+1} first.")
+            else:
+                break  # Exit loop after displaying the first image
+
+        # Information Labels
+        info_labels = [
+            ("Name:", self.name_entry.get()),
+            ("Standard:", self.standard_entry.get()),
+            ("Division:", self.division_entry.get()),
+            ("Academic Year:", self.academic_year_entry.get()),
+            ("Date of Birth:", self.dob_entry.get()),
+            ("Roll Number:", self.roll_no_entry.get())
+        ]
+
+        # Display Information
+        for label_text, entry_value in info_labels:
+            label = tk.Label(info_frame, text=f"{label_text} {entry_value}", font=("Helvetica", 14), pady=5)
+            label.pack(anchor="w", padx=10, pady=5, fill="x")
+        r=0
+        for i, image in enumerate(images[1:], start=1):
+
+            if image:
+                photo = ImageTk.PhotoImage(image)
+                label = tk.Label(info_frame, image=photo, bd=1, relief=tk.SOLID)
+                label.photo = photo
+                label.pack(side=tk.LEFT, padx=(0, 10), pady=5)  # Add a gap of 10 pixels between images
+                label.config(width=150, height=150)  # Set width and height to accommodate the padding and border
+                r+=1
+                if r==2:
+                    break
+            else:
+                r += 1
+                print(f"Please select Image {i+1} first.")
+                if r == 2:
+                    break
+
+        # Check if the Save button is being added
+        save_button = tk.Button(self.info_window, text="Save",command=self.store, bg="#4caf50", fg="#ffffff", font=("Helvetica", 12), padx=10, pady=5, borderwidth=0)
+        save_button.pack(pady=(0, 10))  # Place the Save button below the student image with padding below
+
+    def store(self):
+        con = sqlite3.connect('sqlite.db')
+        cursor = con.cursor()
+
+        student_img_pth = self.selected_image_paths[0]
+        student_sign_pth1 = self.selected_image_paths[1]
+        princp_sign_pth2 = self.selected_image_paths[2]
+
+        if student_img_pth is not None and student_sign_pth1 is not None and princp_sign_pth2 is not None:
+
+            cursor.execute("INSERT INTO id (standard,division, dob, rollno, nm, yr, std_img,std_sign, p_sign) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            (self.std, self.div, self.dob, self.roll, self.name, self.yr, student_img_pth, student_sign_pth1, princp_sign_pth2))
+
+            con.commit()
+            con.close()
+            self.info_window.destroy()
+            messagebox.showinfo('SUCCESS', 'Saved')
+
+        else:
+            messagebox.showerror('ALERT', 'Select Images')
+
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = ImageDisplayApp(root)
+    root.mainloop()

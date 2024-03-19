@@ -1,0 +1,148 @@
+import tkinter as tk
+from tkinter import messagebox
+from PIL import Image, ImageTk
+from tkinter import ttk
+import sqlite3
+
+class CardDisplayApp:
+    def __init__(self, parent):
+        self.parent = parent
+        self.parent.title("Card Display App")
+
+        # Connect to SQLite database
+        self.connection = sqlite3.connect('sqlite.db')
+        self.cursor = self.connection.cursor()
+
+        # Get screen width and height
+        # screen_width = self.parent.winfo_screenwidth()
+        # screen_height = self.parent.winfo_screenheight()
+        #
+        # # Set initial size of the main frame to fill the entire screen
+        # self.parent.geometry(f"{screen_width}x{screen_height}")
+
+        # Configure rows and columns to expand
+        self.parent.grid_rowconfigure(0, weight=1)
+        self.parent.grid_columnconfigure(0, weight=1)
+
+        # Create main frame
+        self.main_frame = tk.Frame(self.parent)
+        self.main_frame.grid(row=0, column=0, sticky="nsew")
+
+        # Dropdown list of names
+        self.name_label = tk.Label(self.main_frame, text="Select Name:")
+        self.name_label.grid(row=0, column=0, padx=10, pady=10)
+
+        self.names = self.get_names_from_database()  # Get names from database
+        self.selected_name = tk.StringVar()
+        self.name_dropdown = ttk.Combobox(self.main_frame, textvariable=self.selected_name, values=self.names)
+        self.name_dropdown.grid(row=0, column=1, padx=10, pady=10)
+
+        # Display button
+        self.display_button = tk.Button(self.main_frame, text="Display", command=self.display_card, bg="#4caf50", fg="#ffffff", font=("Helvetica", 12))
+        self.display_button.grid(row=0, column=2, padx=10, pady=10)
+
+    def get_names_from_database(self):
+        self.cursor.execute("SELECT nm FROM id")
+        return [row[0] for row in self.cursor.fetchall()]
+
+    def display_card(self):
+        selected_name = self.selected_name.get()
+        if selected_name:
+            self.cursor.execute("SELECT * FROM id WHERE nm=?", (selected_name,))
+            data = self.cursor.fetchone()
+            if data:
+                self.display_card_window(data)
+            else:
+                messagebox.showerror("Error", "No data found for selected name.")
+        else:
+            messagebox.showerror("Error", "Please select a name.")
+
+
+    def display_card_window(self, data):
+
+        self.std = data[1]
+        self.div = data[2]
+        self.dob = data[3]
+        self.roll = data[4]
+        self.nm = data[5]
+        self.yr = data[6]
+        self.std_img = data[7]
+        self.std_sign = data[8]
+        self.p_sign = data[9]
+
+          #['C:/Users/ASUS/OneDrive/Pictures/6Uz5Vt.jpg', 'C:/Users/ASUS/OneDrive/Pictures/george-walker-bush-signature.png', 'C:/Users/ASUS/OneDrive/Pictures/nguy-ecnh-nguyen-van-binh-signature-png-5.png']
+
+        # Create a new Toplevel window
+        self.info_window = tk.Toplevel(self.parent)
+        self.info_window.title("Information Display")
+        screen_width = self.info_window.winfo_screenwidth()
+        screen_height = self.info_window.winfo_screenheight()
+
+        # Set size of the frame to fill the entire screen
+        self.info_window.geometry(f"{screen_width}x{screen_height}")
+
+        logo_path = "logo_college.jpg"
+        logo_image = Image.open(logo_path).resize((70, 70))  # Adjust size as needed
+        logo_photo = ImageTk.PhotoImage(logo_image)
+
+        # Display the logo
+        logo_label = tk.Label(self.info_window, image=logo_photo, bd=1, relief=tk.SOLID)
+        logo_label.image = logo_photo  # Retain a reference to avoid garbage collection
+        logo_label.pack(pady=10)
+
+        # Information Frame
+        info_frame = tk.Frame(self.info_window)
+        info_frame.pack(pady=10)
+
+        selected_image_paths=[self.std_img,self.std_sign,self.p_sign]
+        # Display Images
+        images = [Image.open(path).resize((125, 125)) if path else None for path in selected_image_paths]
+
+        for i, image in enumerate(images):
+            if i == 0 and image:
+                photo = ImageTk.PhotoImage(image)
+                label = tk.Label(info_frame, image=photo, bd=1, relief=tk.SOLID)
+                label.photo = photo
+                label.pack(pady=5)
+            elif not image:
+                print(f"Please select Image {i+1} first.")
+            else:
+                break  # Exit loop after displaying the first image
+
+        # Information Labels
+        info_labels = [
+            ("Name:", self.nm),
+            ("Standard:", self.std),
+            ("Division:", self.div),
+            ("Academic Year:", self.yr),
+            ("Date of Birth:", self.dob),
+            ("Roll Number:", self.roll)
+        ]
+
+        # Display Information
+        for label_text, entry_value in info_labels:
+            label = tk.Label(info_frame, text=f"{label_text} {entry_value}", font=("Helvetica", 14), pady=5)
+            label.pack(anchor="w", padx=10, pady=5, fill="x")
+        r=0
+        for i, image in enumerate(images[1:], start=1):
+
+            if image:
+                photo = ImageTk.PhotoImage(image)
+                label = tk.Label(info_frame, image=photo, bd=1, relief=tk.SOLID)
+                label.photo = photo
+                label.pack(side=tk.LEFT, padx=(0, 10), pady=5)  # Add a gap of 10 pixels between images
+                label.config(width=150, height=150)  # Set width and height to accommodate the padding and border
+                r+=1
+                if r==2:
+                    break
+            else:
+                r += 1
+                print(f"Please select Image {i+1} first.")
+                if r == 2:
+                    break
+
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = CardDisplayApp(root)
+    root.mainloop()
